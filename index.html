@@ -1,451 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Split or Steal — Prisoner’s Dilemma</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Split or Steal</title>
 <style>
-  :root{
-    --bg:#0b0f1a; --card:#12141a; --muted:#98a0b3; --accent:#38bdf8; --good:#10b981; --bad:#fb7185;
-    --glass: rgba(255,255,255,0.03);
-  }
-  [data-theme="light"]{
-    --bg:#f4f7fb; --card:#ffffff; --muted:#55606f; --accent:#0ea5e9; --good:#059669; --bad:#ef4444; --glass: rgba(0,0,0,0.03);
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    min-height:100vh;
-    font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;
-    background:radial-gradient(circle at 10% 10%, rgba(56,189,248,0.05), transparent), var(--bg);
-    color: #e6eef6;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:28px;
-  }
-  .app{
-    width:100%;
-    max-width:980px;
-    border-radius:14px;
-    background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02));
-    box-shadow: 0 10px 30px rgba(2,6,23,0.6);
-    overflow:hidden;
-  }
-  header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:18px 22px;
-    border-bottom:1px solid var(--glass);
-  }
-  .brand{
-    display:flex;flex-direction:column;gap:4px;
-  }
-  .title{font-weight:700;font-size:1.05rem}
-  .subtitle{font-size:0.78rem;color:var(--muted)}
-  .author{font-size:0.78rem;color:var(--muted);opacity:0.9}
-  .controls{display:flex;gap:8px;align-items:center}
-  select,input[type="checkbox"]{padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid var(--glass)}
-  button{padding:8px 12px;border-radius:9px;border:0;background:var(--accent);color:#012;cursor:pointer;font-weight:600}
-  main{display:grid;grid-template-columns:1fr 340px;gap:20px;padding:20px}
-  .panel{background:transparent;padding:12px;border-radius:10px}
-  .game-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:16px;border-radius:10px;min-height:260px}
-  .intro{font-size:0.92rem;color:var(--muted);line-height:1.35;margin-bottom:10px}
-  .score{display:flex;gap:12px;font-weight:700;margin:12px 0}
-  .score span{background:var(--glass);padding:8px 10px;border-radius:8px;color:inherit}
-  .actions{display:flex;gap:12px;margin-top:12px}
-  .big{padding:14px 20px;font-size:1.05rem;border-radius:12px}
-  .split{background:var(--good);color:#022}
-  .steal{background:var(--bad);color:#210}
-  .mode-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-  .mode-btn{padding:6px 10px;border-radius:8px;background:transparent;border:1px solid var(--glass);cursor:pointer;color:var(--muted)}
-  .mode-btn.active{background:rgba(255,255,255,0.03);border-color:var(--accent);color:var(--accent)}
-  .log{background:var(--glass);padding:10px;border-radius:8px;height:300px;overflow:auto;font-size:0.88rem;color:var(--muted)}
-  .meta{font-size:0.85rem;color:var(--muted);margin-top:8px}
-  .tiny{font-size:0.78rem;color:var(--muted)}
-  footer{padding:12px 22px;border-top:1px solid var(--glass);display:flex;justify-content:space-between;align-items:center}
-  .small-btn{background:transparent;border:1px solid var(--glass);padding:6px 8px;border-radius:8px;color:var(--muted);cursor:pointer}
-  .row{display:flex;gap:8px;align-items:center}
-  .divider{height:1px;background:var(--glass);margin:12px 0;border-radius:2px}
-  /* responsive */
-  @media (max-width:900px){main{grid-template-columns:1fr;}.log{height:200px}}
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background-color: #0b0b0b;
+  color: #f1f1f1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+header {
+  text-align: center;
+  margin: 20px 0;
+}
+h1 { font-size: 2rem; margin-bottom: 5px; }
+h2 { font-size: 1.1rem; font-weight: 400; color: #b3b3b3; margin-bottom: 25px; }
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90%;
+  max-width: 500px;
+  background: #141414;
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.05);
+}
+select, button {
+  background: #1f1f1f;
+  color: #f1f1f1;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 8px;
+  font-size: 1rem;
+}
+button:hover, select:hover {
+  background: #2b2b2b;
+  cursor: pointer;
+}
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 20px 0;
+}
+.scoreboard {
+  background: #1a1a1a;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  width: 100%;
+}
+.intro {
+  text-align: justify;
+  font-size: 0.95rem;
+  color: #c4c4c4;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.signature {
+  font-size: 0.8rem;
+  color: #7e7e7e;
+  text-align: center;
+  margin-top: -5px;
+}
 </style>
 </head>
-<body data-theme="dark">
-  <div class="app" role="application" aria-label="Split or Steal game">
-    <header>
-      <div class="brand">
-        <div class="title">Split or Steal</div>
-        <div class="subtitle">A Prisoner’s Dilemma toy. Designed to experiment with trust and betrayal.</div>
-      </div>
-      <div class="author">made by arya jamwal</div>
-      <div class="controls" style="margin-left:12px">
-        <label class="tiny">Theme</label>
-        <select id="themeSelect" title="Toggle theme">
-          <option value="dark">Dark</option>
-          <option value="light">Light</option>
-        </select>
-      </div>
-    </header>
+<body>
+<header>
+  <h1>Split or Steal</h1>
+  <h2>A modern minimal simulation of the Prisoner’s Dilemma</h2>
+</header>
 
-    <main>
-      <section class="panel">
-        <div class="game-card">
-          <div class="intro">
-            <strong>Prisoner’s Dilemma (short)</strong>: Two players choose to cooperate or defect. Mutual cooperation yields good payoff for both. Rational self-interest can push both to defect and get a worse outcome. The dilemma appears in economics, politics, and everyday trust decisions.
-          </div>
-
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <label class="tiny">Mode</label>
-            <select id="playMode" title="Choose Play Mode">
-              <option value="vsComputer">Play vs Computer</option>
-              <option value="vsPlayer">Play vs Player (same device)</option>
-            </select>
-
-            <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-              <label class="tiny">AI Strategy</label>
-              <select id="aiStrategy">
-                <option value="alwaysSplit">Always Split</option>
-                <option value="alwaysSteal">Always Steal</option>
-                <option value="titForTat">Tit-for-Tat</option>
-                <option value="grudger">Grudger</option>
-                <option value="random">Random</option>
-                <option value="adaptive">Adaptive (learn)</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="score">
-            <span id="scoreLeft">You: 0</span>
-            <span id="scoreRight">AI: 0</span>
-            <span id="rounds" style="font-weight:600">Rounds: 0</span>
-          </div>
-
-          <div id="turnInfo" class="meta">Mode: <strong id="modeLabel">Play vs Computer</strong></div>
-
-          <div class="actions" aria-hidden="false" style="margin-top:12px">
-            <button class="big split" id="btnSplit">Split</button>
-            <button class="big steal" id="btnSteal">Steal</button>
-            <button class="big" id="btnPass" style="display:none">Pass Device</button>
-          </div>
-
-          <div style="margin-top:12px" id="resultMsg" class="tiny"></div>
-
-          <div style="margin-top:14px" class="mode-row" id="quickModes">
-            <button class="mode-btn" data-mode="classic">Classic payoffs</button>
-            <button class="mode-btn" data-mode="highRisk">High-risk</button>
-            <button class="mode-btn" data-mode="lowRisk">Low-risk</button>
-          </div>
-
-          <div class="meta" style="margin-top:12px">Tip: switch to <em>Play vs Player</em> to hand the device after Player 1 picks. AI strategies use past moves for Tit-for-Tat, Grudger, and Adaptive.</div>
-        </div>
-      </section>
-
-      <aside class="panel">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><strong>History</strong></div>
-          <div class="row">
-            <button class="small-btn" id="exportBtn" title="Export state">Export</button>
-            <button class="small-btn" id="importBtn" title="Import state">Import</button>
-            <button class="small-btn" id="resetBtn" title="Reset everything">Reset</button>
-          </div>
-        </div>
-
-        <div class="log" id="logArea" aria-live="polite">
-          No rounds yet.
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="meta">
-          <div><strong>AI debug</strong></div>
-          <div id="aiDebug" class="tiny" style="margin-top:8px">strategy: — | epsilon: — | memory: —</div>
-        </div>
-      </aside>
-    </main>
-
-    <footer>
-      <div class="tiny">Payoffs: Split/Split = 3/3 • Split/Steal = 0/6 • Steal/Steal = 1/1</div>
-      <div class="tiny">Built for quick experiments. Local only. No tracking.</div>
-    </footer>
+<div class="container">
+  <div class="intro">
+    The Prisoner’s Dilemma models trust and betrayal in decision-making.
+    Two players choose to cooperate (Split) or defect (Steal).
+    Mutual cooperation benefits both, but temptation to steal can ruin trust.
+    This experiment shows how strategies evolve and adapt across rounds.
+    In real-world economics and politics, such dynamics drive alliances and competition.
   </div>
 
+  <div>
+    <label for="mode">AI Mode:</label>
+    <select id="mode">
+      <option>Tit-for-Tat</option>
+      <option>Grim Trigger</option>
+      <option>Adaptive</option>
+      <option>Random</option>
+    </select>
+  </div>
+
+  <div>
+    <label for="target">Points to Win:</label>
+    <input type="number" id="target" value="20" min="5" max="100" style="width:80px;background:#1f1f1f;color:#f1f1f1;border:none;padding:5px;border-radius:6px;">
+  </div>
+
+  <div class="actions">
+    <button onclick="play('Split')">Split</button>
+    <button onclick="play('Steal')">Steal</button>
+  </div>
+  <div class="signature">by Arya Jamwal</div>
+
+  <div class="scoreboard">
+    <p id="roundInfo">Rounds Played: 0</p>
+    <p id="scoreInfo">You: 0 | AI: 0</p>
+    <p id="result"></p>
+    <button onclick="resetAll()">Reset All</button>
+  </div>
+</div>
+
 <script>
-(function(){
-  // State and storage keys
-  const KEY = "split_steal_state_v2";
-  const state = loadState() || {
-    mode: "vsComputer",
-    aiStrategy: "alwaysSplit",
-    scoreLeft: 0, scoreRight: 0, rounds: 0,
-    history: [],
-    aiMemory: [], // array of player moves for AI models
-    grudge: false,
-    adaptiveQ: { Split:1, Steal:1 }, adaptiveEps: 0.12
-  };
+const PAYOFF = {
+  Split: { Split: [2, 2], Steal: [1, 3] },
+  Steal: { Split: [3, 1], Steal: [-1, -1] },
+};
+let playerScore = 0;
+let aiScore = 0;
+let rounds = 0;
+let history = [];
+let aiMemory = [];
 
-  // DOM
-  const themeSelect = document.getElementById("themeSelect");
-  const playMode = document.getElementById("playMode");
-  const aiStrategy = document.getElementById("aiStrategy");
-  const btnSplit = document.getElementById("btnSplit");
-  const btnSteal = document.getElementById("btnSteal");
-  const btnPass = document.getElementById("btnPass");
-  const scoreLeft = document.getElementById("scoreLeft");
-  const scoreRight = document.getElementById("scoreRight");
-  const roundsEl = document.getElementById("rounds");
-  const logArea = document.getElementById("logArea");
-  const aiDebug = document.getElementById("aiDebug");
-  const modeLabel = document.getElementById("modeLabel");
-  const resultMsg = document.getElementById("resultMsg");
-  const resetBtn = document.getElementById("resetBtn");
-  const exportBtn = document.getElementById("exportBtn");
-  const importBtn = document.getElementById("importBtn");
-  const quickModes = document.getElementById("quickModes");
-
-  // initial UI sync
-  themeSelect.value = localStorage.getItem("theme") || "dark";
-  document.body.setAttribute("data-theme", themeSelect.value);
-  playMode.value = state.mode;
-  aiStrategy.value = state.aiStrategy;
-  renderState();
-
-  // Event listeners
-  themeSelect.addEventListener("change", ()=> {
-    document.body.setAttribute("data-theme", themeSelect.value);
-    localStorage.setItem("theme", themeSelect.value);
-  });
-
-  playMode.addEventListener("change", ()=> {
-    state.mode = playMode.value;
-    saveState();
-    renderState();
-  });
-
-  aiStrategy.addEventListener("change", ()=> {
-    state.aiStrategy = aiStrategy.value;
-    saveState();
-    renderState();
-  });
-
-  quickModes.querySelectorAll(".mode-btn").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      quickModes.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      const m = btn.dataset.mode;
-      if(m==="classic"){
-        // base payoffs (already in UI footer)
-      } else if(m==="highRisk"){
-        // visual cue only
-        flash(resultMsg, "High-risk mode cosmetic change applied");
-      } else if(m==="lowRisk"){
-        flash(resultMsg, "Low-risk mode cosmetic change applied");
-      }
-    });
-  });
-
-  btnSplit.addEventListener("click", ()=> handleChoice("Split"));
-  btnSteal.addEventListener("click", ()=> handleChoice("Steal"));
-  btnPass.addEventListener("click", ()=> {
-    // used in same-device play. simply toggle turn prompt.
-    btnPass.style.display = "none";
-    setTurnPrompt();
-  });
-
-  resetBtn.addEventListener("click", ()=> {
-    if(!confirm("Reset all scores and history?")) return;
-    Object.assign(state, { scoreLeft:0, scoreRight:0, rounds:0, history:[], aiMemory:[], grudge:false, adaptiveQ:{Split:1,Steal:1}, adaptiveEps:0.12 });
-    saveState(); renderState(); flash(resultMsg,"Reset done");
-  });
-
-  exportBtn.addEventListener("click", ()=>{
-    const data = JSON.stringify(state, null, 2);
-    const blob = new Blob([data],{type:"application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href=url; a.download="split-steal-state.json"; a.click(); URL.revokeObjectURL(url);
-  });
-
-  importBtn.addEventListener("click", async ()=>{
-    const input = document.createElement("input");
-    input.type="file"; input.accept="application/json";
-    input.onchange = ()=> {
-      const f = input.files[0];
-      if(!f) return;
-      const reader = new FileReader();
-      reader.onload = e=> {
-        try{
-          const obj = JSON.parse(e.target.result);
-          Object.assign(state, obj);
-          saveState(); renderState(); flash(resultMsg,"Imported state");
-        }catch(err){ alert("Invalid file") }
-      };
-      reader.readAsText(f);
-    };
-    input.click();
-  });
-
-  // helpers
-  function handleChoice(playerChoice){
-    if(state.mode==="vsPlayer"){
-      // same device: handle sequential turns
-      if(!state._p1choice){
-        state._p1choice = playerChoice;
-        flash(resultMsg, "Player 1 chosen. Press Pass Device and hand over.");
-        btnPass.style.display = "inline-block";
-        disableButtons(true);
-        return;
-      } else {
-        const p1 = state._p1choice;
-        const p2 = playerChoice;
-        delete state._p1choice;
-        computeRound(p1,p2);
-        disableButtons(false);
-      }
-    } else {
-      // vsComputer
-      const ai = aiDecide(playerChoice); // ai may use playerChoice history in adaptive
-      computeRound(playerChoice, ai, true); // computeRound expects (left, right). We'll treat left=player, right=ai
-    }
+function chooseAI(playerLast, mode) {
+  if (mode === "Random") return Math.random() < 0.5 ? "Split" : "Steal";
+  if (mode === "Tit-for-Tat") return playerLast ? playerLast : "Split";
+  if (mode === "Grim Trigger") {
+    if (aiMemory.includes("Steal")) return "Steal";
+    return playerLast === "Steal" ? "Steal" : "Split";
   }
-
-  function aiDecide(currentPlayerChoice){
-    const strat = state.aiStrategy;
-    // For adaptive and tit-for-tat we want to observe past player moves (state.aiMemory)
-    if(strat==="alwaysSplit") return "Split";
-    if(strat==="alwaysSteal") return "Steal";
-    if(strat==="random") return Math.random()<0.5?"Split":"Steal";
-    if(strat==="titForTat"){
-      if(state.aiMemory.length===0) return "Split";
-      return state.aiMemory[0]; // mirror last player move
-    }
-    if(strat==="grudger"){
-      if(state.grudge) return "Steal";
-      if(state.aiMemory.includes("Steal")) state.grudge=true;
-      return "Split";
-    }
-    if(strat==="adaptive"){
-      // simple RL-ish: combine Q and estimated pSplit
-      const mem = state.aiMemory;
-      const pSplit = mem.length ? (mem.filter(x=>x==="Split").length / mem.length) : 0.5;
-      // epsilon exploration
-      if(Math.random() < state.adaptiveEps) return Math.random()<0.5?"Split":"Steal";
-      const q = state.adaptiveQ;
-      const scoreSplit = 0.6 * q.Split + 0.4 * (3 * pSplit);
-      const scoreSteal = 0.6 * q.Steal + 0.4 * (5 * pSplit + 1);
-      return scoreSteal > scoreSplit ? "Steal" : "Split";
-    }
-    return "Split";
+  if (mode === "Adaptive") {
+    let recent = history.slice(-5);
+    let coopRate = recent.filter(h => h.player === "Split").length / (recent.length || 1);
+    return Math.random() < coopRate ? "Split" : "Steal";
   }
+  return "Split";
+}
 
-  function computeRound(leftChoice, rightChoice, leftIsPlayer=true){
-    // Convention: left = Player (or Player1). right = AI (or Player2)
-    const PAY = { Split: {Split:[3,3], Steal:[0,6]}, Steal:{Split:[6,0], Steal:[1,1]} };
-    const [leftGain, rightGain] = PAY[leftChoice][rightChoice];
-    state.scoreLeft = (state.scoreLeft||0) + leftGain;
-    state.scoreRight = (state.scoreRight||0) + rightGain;
-    state.rounds = (state.rounds||0) + 1;
+function play(playerMove) {
+  const mode = document.getElementById("mode").value;
+  const last = history[history.length - 1]?.player;
+  const aiMove = chooseAI(last, mode);
+  const [aiGain, playerGain] = PAYOFF[aiMove][playerMove];
+  aiScore += aiGain;
+  playerScore += playerGain;
+  rounds++;
+  history.push({ round: rounds, player: playerMove, ai: aiMove });
+  aiMemory.push(aiMove);
 
-    // update AI memory with the human player's action only
-    if(state.mode==="vsComputer"){
-      // human is left; push their action to memory for AI models
-      state.aiMemory.unshift(leftChoice);
-      if(state.aiMemory.length>50) state.aiMemory.pop();
-      // update adaptive Q if used
-      if(state.aiStrategy==="adaptive"){
-        const a = rightChoice;
-        state.adaptiveQ[a] = (state.adaptiveQ[a]||1) + 0.2 * ( (a==="Split" ? PAY[a][leftChoice][0] : PAY[a][leftChoice][0]) - (state.adaptiveQ[a]||1) );
-        state.adaptiveEps = Math.max(0.02, state.adaptiveEps * 0.995);
-      }
-      // update grudge: handled in aiDecide via aiMemory
-    } else {
-      // vsPlayer: treat Player1 as left, Player2 as right; both human. We still store each player1 action for potential later analysis.
-      state.aiMemory.unshift(leftChoice);
-      if(state.aiMemory.length>50) state.aiMemory.pop();
-    }
+  const target = parseInt(document.getElementById("target").value) || 20;
+  let message = `You chose ${playerMove}, AI chose ${aiMove}.`;
+  if (playerScore >= target) message += " You win!";
+  if (aiScore >= target) message += " AI wins!";
 
-    // store the round
-    const rec = {
-      round: state.rounds,
-      left: leftChoice, right: rightChoice,
-      gainLeft: leftGain, gainRight: rightGain,
-      mode: state.mode, aiStrategy: state.aiStrategy,
-      ts: Date.now()
-    };
-    state.history.unshift(rec);
-    if(state.history.length>500) state.history.pop();
+  document.getElementById("roundInfo").innerText = `Rounds Played: ${rounds}`;
+  document.getElementById("scoreInfo").innerText = `You: ${playerScore} | AI: ${aiScore}`;
+  document.getElementById("result").innerText = message;
+}
 
-    // update UI and save
-    saveState(); renderState();
-    announce(rec);
-  }
-
-  function announce(rec){
-    const humanLeft = (state.mode==="vsComputer") ? "You" : "Player 1";
-    const humanRight = (state.mode==="vsComputer") ? "AI" : "Player 2";
-    const line = `#${rec.round}: ${humanLeft} ${rec.left} | ${humanRight} ${rec.right} → +${rec.gainLeft}/+${rec.gainRight}`;
-    logArea.innerHTML = line + "<br>" + logArea.innerHTML;
-    resultMsg.innerText = line;
-    // small animation/flash
-    flash(resultMsg, "Round recorded");
-  }
-
-  function renderState(){
-    scoreLeft.textContent = `${state.mode==="vsComputer"?"You":"Player 1"}: ${state.scoreLeft||0}`;
-    scoreRight.textContent = `${state.mode==="vsComputer"?"AI":"Player 2"}: ${state.scoreRight||0}`;
-    roundsEl.textContent = `Rounds: ${state.rounds||0}`;
-    modeLabel.textContent = state.mode==="vsComputer" ? `Play vs Computer — ${humanReadableAI(state.aiStrategy)}` : "Play vs Player";
-    // history
-    if(state.history.length===0) logArea.innerText = "No rounds yet.";
-    // ai debug
-    aiDebug.innerHTML = `strategy: ${state.aiStrategy} | epsilon: ${state.adaptiveEps?.toFixed?.(3)||"—"} | memory: ${state.aiMemory.slice(0,6).join(",")||"—"}`;
-  }
-
-  function humanReadableAI(key){
-    const map = { alwaysSplit:"Always Split", alwaysSteal:"Always Steal", titForTat:"Tit-for-Tat", grudger:"Grudger", random:"Random", adaptive:"Adaptive" };
-    return map[key]||key;
-  }
-
-  function disableButtons(dis){
-    btnSplit.disabled = dis;
-    btnSteal.disabled = dis;
-  }
-
-  function setTurnPrompt(){
-    // show prompt for next player in vsPlayer
-    if(state.mode==="vsPlayer"){
-      resultMsg.innerText = "Player 2: choose now";
-    }
-  }
-
-  function flash(el, text){
-    if(text) el.innerText = text;
-    el.style.transition="opacity 160ms";
-    el.style.opacity=0.6;
-    setTimeout(()=>el.style.opacity=1,120);
-  }
-
-  function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
-  function loadState(){ try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null} }
-
-  // initialize
-  function loadState(){
-    try{
-      const s = localStorage.getItem(KEY);
-      return s ? JSON.parse(s) : null;
-    }catch(e){return null}
-  }
-
-  function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
-  // render initial
-  renderState();
-
-  // expose reset and quick inspect to console for power users
-  window.SplitStealState = state;
-
-})();
+function resetAll() {
+  playerScore = 0;
+  aiScore = 0;
+  rounds = 0;
+  history = [];
+  aiMemory = [];
+  document.getElementById("roundInfo").innerText = "Rounds Played: 0";
+  document.getElementById("scoreInfo").innerText = "You: 0 | AI: 0";
+  document.getElementById("result").innerText = "";
+}
 </script>
 </body>
 </html>
