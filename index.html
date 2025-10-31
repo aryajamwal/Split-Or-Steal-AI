@@ -1,0 +1,376 @@
+import React, { useEffect, useState, useRef } from "react";
+
+// Split-or-Steal Infinite Game
+// Single-file React app designed to run on Vercel/Netlify/GitHub Pages.
+// Features:
+// - Infinite rounds. Scores persist in localStorage unless reset.
+// - Player chooses Split or Steal each round.
+// - Payoffs: both Split => 3 each. Split vs Steal => Stealer 6, Splitter 0. Both Steal => 1 each.
+// - AI modes: Always Steal, Always Split, Tit-for-Tat, Random, Adaptive (Q-learning + opponent model + exploration).
+// - Round history, per-round rewards, and simple charts (textual) for quick inspection.
+// - Minimal dependencies. Tailwind-friendly classes used for quick styling.
+
+const ACTIONS = ["Split", "Steal"];
+const PAYOFF = {
+  Split: { Split: [3, 3], Steal: [0, 6] },
+  Steal: { Split: [6, 0], Steal: [1, 1] },
+};
+
+function otherAction(a) {
+  return a === "Split" ? "Steal" : "Split";
+}
+
+function computePayoff(aiAction, playerAction) {
+  // returns [aiReward, playerReward]
+  return PAYOFF[aiAction][playerAction];
+}
+
+function saveState(key, obj) {
+  try {
+    localStorage.setItem(key, JSON.stringify(obj));
+  } catch (e) {
+    // ignore
+  }
+}
+
+function loadState(key, fallback) {
+  try {
+    const s = localStorage.getItem(key);
+    if (!s) return fallback;
+    return JSON.parse(s);
+  } catch (e) {
+    return fallback;
+  }
+}
+
+export default function SplitOrStealApp() {
+  // persistent state
+  const persisted = loadState("split_or_steal_v1", null);
+
+  const [mode, setMode] = useState(persisted?.mode || "Adaptive");
+  const [rounds, setRounds] = useState(persisted?.rounds || 0);
+  const [aiScore, setAiScore] = useState(persisted?.aiScore || 0);
+  const [playerScore, setPlayerScore] = useState(persisted?.playerScore || 0);
+  const [history, setHistory] = useState(persisted?.history || []); // [{round, player, ai, aiReward, playerReward}]
+  const [aiState, setAiState] = useState(persisted?.aiState || null); // will initialize below if null
+
+  // local non-persisted UI
+  const [lastRoundInfo, setLastRoundInfo] = useState(null);
+  const aiRef = useRef(null);
+
+  useEffect(() => {
+    // initialize AI state if missing
+    if (!aiState) {
+      const init = {
+        // Q-learning values for AI actions. Start neutral.
+        Q: { Split: 1, Steal: 1 },
+        alpha: 0.2, // learning rate
+        gamma: 0.0, // no future reward discount for one-step update
+        epsilon: 0.15, // exploration probability
+        // simple opponent frequency model for Split probability
+        oppCounts: { Split: 1, Steal: 1 }, // laplace smoothing
+        memory: [], // recent opponent actions
+        memoryMax: 50,
+      };
+      setAiState(init);
+      aiRef.current = init;
+    } else {
+      aiRef.current = aiState;
+    }
+  }, []);
+
+  useEffect(() => {
+    // persist whenever main state changes
+    saveState("split_or_steal_v1", { mode, rounds, aiScore, playerScore, history, aiState: aiRef.current });
+  }, [mode, rounds, aiScore, playerScore, history, aiState]);
+
+  function resetAll() {
+    setRounds(0);
+    setAiScore(0);
+    setPlayerScore(0);
+    setHistory([]);
+    const init = {
+      Q: { Split: 1, Steal: 1 },
+      alpha: 0.2,
+      gamma: 0.0,
+      epsilon: 0.15,
+      oppCounts: { Split: 1, Steal: 1 },
+      memory: [],
+      memoryMax: 50,
+    };
+    setAiState(init);
+    aiRef.current = init;
+    setLastRoundInfo(null);
+    try {
+      localStorage.removeItem("split_or_steal_v1");
+    } catch (e) {}
+  }
+
+  // AI decision functions
+  function aiAlways(action) {
+    return action;
+  }
+
+  function aiRandom() {
+    return Math.random() < 0.5 ? "Split" : "Steal";
+  }
+
+  function aiTitForTat() {
+    if (history.length === 0) return "Split"; // start cooperative
+    const last = history[0].player; // history is newest-first
+    return last; // mirror player's last action
+  }
+
+  function aiAdaptive(playerAction) {
+    // Uses Q-learning on AI actions and an opponent frequency model to pick actions.
+    const A = aiRef.current;
+    if (!A) throw new Error("AI state missing");
+
+    // Update opponent model from provided playerAction
+    A.oppCounts[playerAction] = (A.oppCounts[playerAction] || 0) + 1;
+    A.memory.unshift(playerAction);
+    if (A.memory.length > A.memoryMax) A.memory.pop();
+
+    // Estimate P(player chooses Split) using recent memory weighted average
+    const mem = A.memory;
+    const recentWeight = 6; // how strongly to weight recent moves in short memory
+    let weightedSum = 0;
+    let weightTot = 0;
+    for (let i = 0; i < mem.length; i++) {
+      const w = Math.max(1, recentWeight - i);
+      weightTot += w;
+      if (mem[i] === "Split") weightedSum += w;
+    }
+    const pSplit = weightTot === 0 ? 0.5 : weightedSum / weightTot;
+
+    // Q-values drive exploitation
+    const qSplit = A.Q.Split;
+    const qSteal = A.Q.Steal;
+
+    // Soft epsilon-greedy: with prob epsilon choose random. Else choose argmax Q.
+    if (Math.random() < A.epsilon) {
+      return aiRandom();
+    }
+
+    // But incorporate opponent model: if player seems reliably cooperative, prefer Split to get mutual benefit long-term.
+    // We compute expected immediate reward for AI of each action using pSplit
+    const expSteal = 5 * pSplit + 1; // derived earlier: 6*p + 1*(1-p) = 5p+1
+    const expSplit = 3 * pSplit + 0 * (1 - pSplit) = 3 * pSplit; // but keep formula separately to avoid confusion
+
+    // Combine Q and expected immediate reward. Tunable mix.
+    const exploitScore = 0.6; // weight on Q
+    const modelScore = 0.4; // weight on immediate expectation
+
+    const scoreSplit = exploitScore * qSplit + modelScore * (3 * pSplit);
+    const scoreSteal = exploitScore * qSteal + modelScore * (5 * pSplit + 1);
+
+    return scoreSteal > scoreSplit ? "Steal" : "Split";
+  }
+
+  function aiChoose(playerLast) {
+    if (mode === "Always Steal") return aiAlways("Steal");
+    if (mode === "Always Split") return aiAlways("Split");
+    if (mode === "Random") return aiRandom();
+    if (mode === "Tit-for-Tat") return aiTitForTat();
+    if (mode === "Adaptive") {
+      // In Adaptive mode AI chooses before seeing player's current action.
+      // We simulate choice using current opponent model without updating it with player's unseen action.
+      const A = aiRef.current;
+      if (!A) return aiRandom();
+
+      // Estimate pSplit from memory
+      const mem = A.memory;
+      if (mem.length === 0) {
+        // start cooperative by default
+        return Math.random() < 0.6 ? "Split" : "Steal";
+      }
+
+      // reuse logic from aiAdaptive but without updating with current playerAction
+      // Compute weighted recent pSplit
+      const recentWeight = 6;
+      let weightedSum = 0;
+      let weightTot = 0;
+      for (let i = 0; i < mem.length; i++) {
+        const w = Math.max(1, recentWeight - i);
+        weightTot += w;
+        if (mem[i] === "Split") weightedSum += w;
+      }
+      const pSplit = weightTot === 0 ? 0.5 : weightedSum / weightTot;
+
+      // compute combined score
+      const qSplit = A.Q.Split;
+      const qSteal = A.Q.Steal;
+      const exploitScore = 0.6;
+      const modelScore = 0.4;
+      const scoreSplit = exploitScore * qSplit + modelScore * (3 * pSplit);
+      const scoreSteal = exploitScore * qSteal + modelScore * (5 * pSplit + 1);
+
+      // epsilon exploration
+      if (Math.random() < A.epsilon) return aiRandom();
+
+      return scoreSteal > scoreSplit ? "Steal" : "Split";
+    }
+
+    return aiRandom();
+  }
+
+  function updateAiAfterRound(aiAction, playerAction, aiReward) {
+    const A = aiRef.current;
+    if (!A) return;
+    // Q-learning update for chosen action
+    const a = aiAction;
+    const oldQ = A.Q[a] || 0;
+    const alpha = A.alpha;
+    const newQ = oldQ + alpha * (aiReward - oldQ);
+    A.Q[a] = newQ;
+
+    // Slightly decay epsilon to reduce exploration over time
+    A.epsilon = Math.max(0.02, A.epsilon * 0.999);
+
+    // save back
+    setAiState({ ...A });
+    aiRef.current = A;
+  }
+
+  function playRound(playerAction) {
+    const aiAction = aiChoose(playerAction);
+
+    // If mode is Adaptive we also should record playerAction into AI before computing payoff adaptation.
+    if (mode === "Adaptive") {
+      // update opponent model then final choice? We chose above without current playerAction. Now update model as if AI sees player's action after the round.
+      // We'll call aiAdaptive to update model, but we need it to return nothing; instead we call aiAdaptive to update oppCounts.
+      aiAdaptive(playerAction); // updates oppCounts and memory inside aiRef
+    }
+
+    const [aiReward, plReward] = computePayoff(aiAction, playerAction);
+
+    // Update Q-values for Adaptive only after observing reward
+    if (mode === "Adaptive") updateAiAfterRound(aiAction, playerAction, aiReward);
+
+    const roundObj = {
+      round: rounds + 1,
+      player: playerAction,
+      ai: aiAction,
+      aiReward,
+      playerReward: plReward,
+      timestamp: Date.now(),
+    };
+
+    setRounds(r => r + 1);
+    setAiScore(s => s + aiReward);
+    setPlayerScore(s => s + plReward);
+    setHistory(h => [roundObj, ...h].slice(0, 1000));
+    setLastRoundInfo(roundObj);
+  }
+
+  // quick aggregate stats
+  function calcStats() {
+    const total = rounds;
+    const coopCount = history.filter(r => r.player === "Split").length;
+    const aiCoop = history.filter(r => r.ai === "Split").length;
+    return { total, coopCount, aiCoop };
+  }
+
+  const stats = calcStats();
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
+      <div className="w-full max-w-4xl bg-white rounded-2xl shadow p-6">
+        <h1 className="text-2xl font-semibold mb-2">Split or Steal — Infinite, Adaptive AI</h1>
+        <p className="text-sm text-gray-600 mb-4">Two actions. Payoffs: Split/Split = 3/3. Split/Steal = 0/6. Steal/Steal = 1/1. Play infinitely. AI adapts using a combined Q-learning and opponent model.</p>
+
+        <div className="flex gap-3 items-center mb-4">
+          <label className="text-sm">AI Mode</label>
+          <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 rounded">
+            <option>Adaptive</option>
+            <option>Tit-for-Tat</option>
+            <option>Always Steal</option>
+            <option>Always Split</option>
+            <option>Random</option>
+          </select>
+
+          <button onClick={resetAll} className="ml-auto bg-red-600 text-white px-3 py-1 rounded">Reset</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="p-4 border rounded">
+            <h3 className="font-medium">Scores</h3>
+            <div className="mt-2 text-lg">You: {playerScore}</div>
+            <div className="mt-1 text-lg">AI: {aiScore}</div>
+            <div className="mt-2 text-sm text-gray-500">Rounds: {rounds}</div>
+          </div>
+
+          <div className="p-4 border rounded">
+            <h3 className="font-medium">Last Round</h3>
+            {lastRoundInfo ? (
+              <div className="mt-2 text-sm">
+                <div>You: {lastRoundInfo.player} | AI: {lastRoundInfo.ai}</div>
+                <div>Score change — You: +{lastRoundInfo.playerReward} | AI: +{lastRoundInfo.aiReward}</div>
+                <div className="mt-1 text-xs text-gray-500">Round #{lastRoundInfo.round}</div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 mt-2">No rounds played.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {ACTIONS.map(a => (
+            <button key={a} onClick={() => playRound(a)} className="py-4 rounded-lg border text-lg font-medium hover:shadow">{a}</button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="p-3 border rounded">
+            <h4 className="font-medium">AI State (debug)</h4>
+            <div className="mt-2 text-xs">
+              Mode: {mode}
+              <br />
+              {aiRef.current ? (
+                <>
+                  Q[Split]: {(aiRef.current.Q.Split || 0).toFixed(3)}<br />
+                  Q[Steal]: {(aiRef.current.Q.Steal || 0).toFixed(3)}<br />
+                  Epsilon: {(aiRef.current.epsilon || 0).toFixed(3)}<br />
+                  Memory (recent): {(aiRef.current.memory || []).slice(0, 10).join(",")}
+                </>
+              ) : (
+                <span className="text-gray-500">initializing</span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 border rounded">
+            <h4 className="font-medium">History (recent)</h4>
+            <div className="mt-2 text-xs max-h-40 overflow-auto">
+              {history.length === 0 ? (
+                <div className="text-gray-500">No rounds yet.</div>
+              ) : (
+                history.slice(0, 50).map((r, i) => (
+                  <div key={i} className="flex justify-between py-1 border-b last:border-b-0">
+                    <div>#{r.round} You:{r.player} AI:{r.ai}</div>
+                    <div className="text-sm text-gray-600">+{r.playerReward}/+{r.aiReward}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 border rounded">
+            <h4 className="font-medium">Strategy notes</h4>
+            <div className="mt-2 text-xs text-gray-600">
+              - Adaptive mixes reinforcement learning and opponent modeling to detect cooperation.
+              <br />
+              - Tit-for-Tat mirrors your last action and fosters cooperation if you reciprocate.
+              <br />
+              - You can try to "teach" the Adaptive AI by playing Split repeatedly. If it learns cooperation its epsilon will decay and it will prefer Split for mutual gain.
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 text-xs text-gray-500">
+          Tip: to deploy publicly push to GitHub and use Vercel. The app stores scores locally so the match is effectively infinite across reloads.
+        </div>
+      </div>
+    </div>
+  );
+}
